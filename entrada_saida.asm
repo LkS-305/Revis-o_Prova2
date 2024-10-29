@@ -1,0 +1,179 @@
+title ENTRADA E SAÍDA: BINÁRIO, OCTAL, DECIMAL E HEXADECIMAL
+.MODEL SMALL
+.DATA
+
+.STACK 100H
+.CODE
+MAIN PROC
+    MOV AX, @DATA
+    MOV DS, AX
+
+    MOV AX, 0
+    MOV BX, 0
+    MOV CX, 0
+    MOV DX, 0
+    
+    CALL ENTRADADECIMAL
+    CALL SAIDAOCTAL
+
+    MOV AH, 4CH
+    INT 21H
+MAIN ENDP
+
+;RECEBE NÚMERO BINÁRIO E O GUARDA EM BX
+ENTRADABINARIO PROC
+
+    PUSH AX
+    XOR BX, BX
+    MOV AH, 1
+
+    INPUT:
+        INT 21H                     ;RECEBE UM CARACTERE
+        CMP AL, 0DH                 ;COMPARA INPUT COM CR
+        JZ SAIBINARIO                    ;SE CR --> SAIR DO LOOP
+        AND AL, 0Fh                 ;CONVERTE CARACTERE PARA NUMERO
+        SHL BX, 1                   ;DESLOCA BX 1 BIT PARA A ESQUERDA 
+        OR BL, AL                   ;SOMA EM BX O NUMERO DIGITADO
+        JMP INPUT                   ;VOLTA O LOOP
+    SAIBINARIO:
+    POP AX
+    RET
+ENTRADABINARIO ENDP
+
+;IMPRIME UMA PALAVRA DE 16 BITS QUE ESTÁ ARMAZENADA EM BX
+SAIDABINARIO PROC
+    PUSH AX
+    PUSH BX
+    PUSH CX
+    PUSH DX
+        MOV CX, 16                      ;LER OS 16 BITS DA PALAVRA
+        MOV AH, 2
+        FORBINARIO:
+            SHL BX, 1                   ;DESLOCA BX 1 BIT PARA A ESQUERDA
+            JC UM                       ;SE OCORREU CARRY (MSB FOR IGUAL A 1), SALTA PARA 'UM'
+            MOV DL, '0'                 ;SE MSB FOR IGUAL A 0, DL = 0
+            JMP IMPRIMEBINARIO
+            UM:
+                MOV DL, '1'
+            IMPRIMEBINARIO:
+                INT 21H                 ;IMPRIME O BIT
+        LOOP FORBINARIO
+    POP DX
+    POP CX
+    POP BX
+    POP AX
+    RET
+SAIDABINARIO ENDP
+
+;RECEBE UM NÚMERO EM OCTAL E O GUARDA EM BX
+ENTRADAOCTAL PROC    
+    PUSH AX
+    PUSH CX
+    PUSH DX
+
+    XOR BX, BX
+    MOV AH, 1
+    MOV CX, 5
+    INPUTOCTAL:
+        INT 21H                     ;RECEBE UM CARACTERE
+        CMP AL, 0DH                 ;COMPARA INPUT COM CR
+        JZ SAIOCTAL                    ;SE CR --> SAIR DO LOOP
+        SHL BX, 3                   ;DESLOCA PARA O PRÓXIMO DÍGITO HEXADECIMAL
+        AND AL, 0Fh                 ;CONVERTE DE CARACTERE NUMERICO PARA UM NUMERO
+        OR BL, AL               ;SOMA EM BX O NÚMERO RECÉM CONVERTIDO
+        LOOP INPUTOCTAL
+    SAIOCTAL:    
+    POP DX
+    POP CX
+    POP AX
+    RET
+ENTRADAOCTAL ENDP
+
+;IMPRIME UM NÚMERO EM OCTAL, DE ATÉ 5 DÍGITOS (15 BITS), QUE ESTA GUARDADO EM BX
+SAIDAOCTAL PROC
+    PUSH AX
+    PUSH BX
+    PUSH CX
+    PUSH DX
+
+    MOV CX, 5                       ;LOOP RODA 4 VEZES (4 DIGITOS HEXA EM UMA PALAVRA DE 16-BITS)
+    MOV AH, 2
+
+    OUTPUTOCTAL:
+        MOV DL, BL
+        AND DL, 07H             ;RESTA APENAS OS 3 PRIMEIROS DÍGITOS EM DL (0 A 7)
+        OR DL, 30H              ;CONVERTE PARA NÚMERO
+        SHR BX, 3               ;DESLOCA BX 4 BITS PARA A DIREITA
+        PUSH DX                 ;COLOCA O NÚMERO NA PILHA
+        LOOP OUTPUTOCTAL
+
+    MOV CX, 5
+    IMPRIMIROCTAL:
+        POP DX
+        INT 21H
+        LOOP IMPRIMIROCTAL
+    POP DX
+    POP CX
+    POP BX
+    POP AX
+    RET
+SAIDAOCTAL ENDP
+
+;RECEBE NÚMERO DECIMAL E O GUARDA EM BX
+ENTRADADECIMAL PROC
+    
+    PUSH AX
+
+    XOR BX,BX
+    MOV AH, 1
+    INPUTDECIMAL:
+        INT 21H
+        CMP AL, 13
+        JZ SAIDECIMAL
+        PUSH AX
+        MOV AX, 10
+        MUL BX
+        MOV BX, AX
+        POP AX
+        AND AL, 0Fh
+        ADD BL, AL
+    JMP INPUTDECIMAL
+    SAIDECIMAL:
+    POP AX
+    RET
+ENTRADADECIMAL ENDP
+
+;IMPRIME NÚMERO DECIMAL ARMAZENADO EM BX
+;PODE IMPRIMIR NÚMEROS DE 1 ATÉ 262143
+SAIDADECIMAL PROC
+    PUSH AX
+    PUSH CX
+    PUSH DX
+
+    MOV DI, 10
+    XOR CX, CX
+    MOV AX, BX          ;PASSA O NUMERO A SER DIVIDIDO PARA AX
+    
+    OUTPUTDECIMAL:
+        DIV DI              ;AX / DI    --> QUOCIENTE VAI PARA AX E RESTO VAI PARA DX
+        PUSH DX
+        XOR DX, DX
+        INC CX
+        OR AX, AX
+        JNZ OUTPUTDECIMAL
+    
+    MOV AH, 2
+    IMPRIMIRDECIMAL:
+        POP DX
+        OR DL, 30H
+        INT 21H
+        LOOP IMPRIMIRDECIMAL
+
+    POP DX
+    POP CX
+    POP AX
+    MOV AH, 1
+    INT 21H
+    RET
+SAIDADECIMAL ENDP
+END MAIN
