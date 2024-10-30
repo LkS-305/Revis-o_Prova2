@@ -9,11 +9,6 @@ title ENTRADA E SAÍDA: BINÁRIO, OCTAL, DECIMAL E HEXADECIMAL
 MAIN PROC
     MOV AX, @DATA
     MOV DS, AX
-
-    MOV AX, 0
-    MOV BX, 0
-    MOV CX, 0
-    MOV DX, 0
     
     CALL ENTRADAOCTAL
     CALL SAIDADECIMAL
@@ -156,7 +151,7 @@ SAIDADECIMAL PROC
     MOV DI, 10
     XOR CX, CX
     MOV AX, BX          ;PASSA O NUMERO A SER DIVIDIDO PARA AX
-    
+    XOR DX, DX          ;tira o lixo de dx
     OUTPUTDECIMAL:
         DIV DI              ;AX / DI    --> QUOCIENTE VAI PARA AX E RESTO VAI PARA DX
         PUSH DX
